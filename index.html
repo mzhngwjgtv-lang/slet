@@ -206,10 +206,10 @@
       </div>
 
       <!-- ИНТЕРАКТИВНЫЙ БЛОК: 3D КУБИК D6 + WEB AUDIO ЗВУК + ВИБРАЦИЯ -->
-      <div id="dice-container" onclick="executeRoll()" class="mb-5 p-3.5 sm:p-4 rounded-2xl bg-black/40 border border-white/10 hover:border-sky-400/50 transition-all flex flex-wrap items-center justify-between gap-4 cursor-pointer select-none group">
-        <div class="flex items-center gap-4 pointer-events-none">
-          <!-- 3D Куб -->
-          <div class="dice-scene cursor-pointer">
+      <div id="dice-container" onclick="executeRoll()" class="mb-5 p-3.5 sm:p-4 rounded-2xl bg-black/40 border border-white/10 hover:border-sky-400/50 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer select-none group">
+        <div class="flex items-center gap-3.5 sm:gap-4 pointer-events-none min-w-0 flex-1">
+          <!-- 3D Куб с фиксированным контейнером без наплыва -->
+          <div class="dice-scene cursor-pointer flex-shrink-0">
             <div id="dice-cube" class="cube">
               <div class="cube-face face-1"><div class="dot" style="grid-area: 2/2;"></div></div>
               <div class="cube-face face-2"><div class="dot" style="grid-area: 1/1;"></div><div class="dot" style="grid-area: 3/3;"></div></div>
@@ -220,17 +220,17 @@
             </div>
           </div>
 
-          <div>
-            <div id="dice-roll-title" class="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5 group-hover:text-sky-300 transition">
-              <span>Экспедиционный кубик (D6)</span>
+          <div class="min-w-0 flex-1">
+            <div id="dice-roll-title" class="text-xs sm:text-sm font-bold text-white group-hover:text-sky-300 transition truncate">
+              Экспедиционный кубик (D6)
             </div>
-            <p id="dice-roll-hint" class="text-[11px] text-slate-400 mt-0.5">
-              Нажмите сюда или на кнопку: бросок определит сложность ситуации
+            <p id="dice-roll-hint" class="text-[11px] text-slate-300 sm:text-slate-400 mt-0.5 leading-snug">
+              Нажмите для броска: определит сложность ситуации
             </p>
           </div>
         </div>
 
-        <button id="roll-btn" type="button" onclick="event.stopPropagation(); executeRoll();" class="w-full sm:w-auto px-5 py-3 rounded-xl bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-500 hover:to-red-600 active:scale-95 text-white font-bold text-xs tracking-wider uppercase transition shadow-lg shadow-red-700/40 flex items-center justify-center gap-2 cursor-pointer">
+        <button id="roll-btn" type="button" onclick="event.stopPropagation(); executeRoll();" class="w-full sm:w-auto px-5 py-3 rounded-xl bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-500 hover:to-red-600 active:scale-95 text-white font-bold text-xs tracking-wider uppercase transition shadow-lg shadow-red-700/40 flex items-center justify-center gap-2 cursor-pointer flex-shrink-0">
           <span>🎲</span>
           <span>Бросить кубик</span>
         </button>
@@ -430,16 +430,16 @@
     </div>
   </div>
 
-  <!-- ВИДЖЕТ ЧАТ-БОТА PRO-TALK (FLOATING DRAWER) -->
-  <div class="fixed bottom-4 right-4 z-50 flex flex-col items-end">
+  <!-- ВИДЖЕТ ЧАТ-БОТА PRO-TALK (FLOATING DRAWER + COMPACT FAB) -->
+  <div class="fixed bottom-4 right-4 z-50 flex flex-col items-end pointer-events-none">
     
     <!-- Контейнер виджета с iframe -->
-    <div id="bot-drawer" class="hidden w-[94vw] sm:w-[420px] h-[580px] max-h-[82vh] rounded-3xl overflow-hidden shadow-2xl border-2 border-sky-400/40 bg-rf-navy mb-2 flex flex-col transition-all duration-300">
+    <div id="bot-drawer" class="hidden pointer-events-auto w-[92vw] sm:w-[400px] h-[540px] max-h-[80vh] rounded-3xl overflow-hidden shadow-2xl border-2 border-sky-400/40 bg-rf-navy mb-2 flex flex-col transition-all duration-300">
       
       <!-- Шапка чата бота -->
-      <div class="bg-slate-950 px-4 py-3 border-b border-white/10 flex items-center justify-between">
+      <div class="bg-slate-950 px-4 py-2.5 border-b border-white/10 flex items-center justify-between">
         <div class="flex items-center gap-2.5">
-          <div class="w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></div>
+          <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></div>
           <div>
             <div class="text-xs sm:text-sm font-bold text-white leading-none">AI-Хранитель Традиций</div>
             <div class="text-[10px] text-slate-400 mt-0.5">Диалоговый наставник практикума Слёта ПДО</div>
@@ -448,7 +448,7 @@
         <button onclick="toggleBotWidget(false)" class="text-slate-400 hover:text-white text-base px-2 py-1 rounded-lg hover:bg-white/10 transition">✕</button>
       </div>
 
-      <!-- Live iframe Pro-Talk (чистый проверенный URL диалога без лишних плашек) -->
+      <!-- Live iframe Pro-Talk -->
       <div class="flex-1 w-full h-full bg-white relative">
         <iframe 
           id="protalk-frame"
@@ -459,11 +459,11 @@
       </div>
     </div>
 
-    <!-- Кнопка вызова бота в углу -->
-    <button onclick="toggleBotWidget()" class="flex items-center gap-2.5 px-4 py-3 rounded-full bg-gradient-to-r from-red-600 via-rose-600 to-sky-600 hover:from-red-500 hover:to-sky-500 text-white font-bold text-xs sm:text-sm shadow-2xl shadow-red-900/60 transition active:scale-95 border border-white/20">
-      <span class="text-base sm:text-lg">🤖</span>
-      <span>Спросить AI-наставника / Ввести шифр</span>
-      <span class="w-2 h-2 rounded-full bg-emerald-300 animate-ping"></span>
+    <!-- Компактная круглая кнопка вызова бота (FAB 56x56) -->
+    <button onclick="toggleBotWidget()" class="pointer-events-auto relative w-14 h-14 rounded-full bg-gradient-to-tr from-blue-700 via-sky-500 to-red-600 hover:scale-105 active:scale-95 text-white shadow-2xl shadow-sky-950/80 transition-all flex items-center justify-center border-2 border-white/30 group" title="Открыть диалог с AI-наставником">
+      <span class="text-2xl group-hover:rotate-12 transition-transform">🤖</span>
+      <span class="absolute -top-1 -right-1 px-1.5 py-0.2 rounded-full bg-red-600 border border-white text-[9px] font-black uppercase text-white shadow">AI</span>
+      <span class="absolute bottom-0.5 right-0.5 w-3 h-3 bg-emerald-400 border-2 border-rf-navy rounded-full"></span>
     </button>
   </div>
 
