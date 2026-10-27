@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Конструирование интерактивной игры по традициям народов России с чат-ботом | РГПУ им. А. И. Герцена</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Canvas Confetti for Tricolor celebration -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            rf: {
+              navy: '#070D1E',
+              blue: '#0F2557',
+              cyan: '#38BDF8',
+              red: '#DC2626',
+              ruby: '#B91C1C',
+              gold: '#F59E0B'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Фоновая подложка квест-комнаты с наложением глубокого триколорного градиента */
+    body {
+      background-color: #070D1E;
+      background-image: 
+        radial-gradient(circle at 50% 10%, rgba(15, 37, 87, 0.75) 0%, rgba(7, 13, 30, 0.94) 80%),
+        url('IMG.jpeg');
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+
+    /* 3D Сцена для игрального кубика (D6) */
+    .dice-scene {
+      perspective: 700px;
+      width: 68px;
+      height: 68px;
+    }
+    .cube {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+      transform: translateZ(-34px);
+      transition: transform 1.25s cubic-bezier(0.15, 0.9, 0.25, 1.15);
+    }
+    .cube-face {
+      position: absolute;
+      width: 68px;
+      height: 68px;
+      background: linear-gradient(145deg, #0f1f3d, #091326);
+      border: 2px solid #38bdf8;
+      border-radius: 14px;
+      display: grid;
+      grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+      padding: 7px;
+      box-shadow: inset 0 0 12px rgba(56, 189, 248, 0.35), 0 4px 15px rgba(0,0,0,0.6);
+    }
+    .dot {
+      background: #ffffff;
+      border-radius: 50%;
+      width: 10px;
+      height: 10px;
+      align-self: center;
+      justify-self: center;
+      box-shadow: 0 0 8px #38bdf8, 0 0 14px #ffffff;
+    }
+
+    /* Позиционирование граней куба в 3D пространстве */
+    .face-1 { transform: rotateY(0deg) translateZ(34px); }
+    .face-2 { transform: rotateY(90deg) translateZ(34px); }
+    .face-3 { transform: rotateY(180deg) translateZ(34px); }
+    .face-4 { transform: rotateY(-90deg) translateZ(34px); }
+    .face-5 { transform: rotateX(90deg) translateZ(34px); }
+    .face-6 { transform: rotateX(-90deg) translateZ(34px); }
+
+    /* Эффект матового стекла */
+    .glass-card {
+      background: rgba(13, 24, 48, 0.78);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    /* Анимация пульсации ключевых элементов */
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 15px rgba(56, 189, 248, 0.3); }
+      50% { box-shadow: 0 0 25px rgba(220, 38, 38, 0.45); }
+    }
+    .pulse-glow {
+      animation: pulse-glow 3s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col justify-between selection:bg-red-600 selection:text-white antialiased">
+
+  <!-- ШАПКА / СТАТУС-БАР ЭКСПЕДИЦИИ (ТРИКОЛОР-ЭСТЕТИКА) -->
+  <header class="sticky top-0 z-40 border-b border-white/10 bg-rf-navy/95 backdrop-blur-md px-3 sm:px-6 py-2.5 shadow-xl">
+    <div class="max-w-5xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      
+      <!-- Метаданные мероприятия -->
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-700 via-white to-red-600 p-[2px] shadow flex-shrink-0">
+          <div class="w-full h-full bg-rf-navy rounded-[10px] flex items-center justify-center font-bold text-xs text-white">
+            🇷🇺
+          </div>
+        </div>
+        <div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-500/20 text-sky-300 border border-sky-400/30">
+              29 октября 2026 года • 45 мин
+            </span>
+            <span class="text-[10px] text-slate-300 font-semibold uppercase tracking-wider">
+              XII ОТКРЫТЫЙ ГОРОДСКОЙ СЛЁТ ПЕДАГОГОВ ДОПОЛНИТЕЛЬНОГО ОБРАЗОВАНИЯ
+            </span>
+          </div>
+          <h1 class="text-xs sm:text-sm font-bold text-white tracking-wide mt-0.5">
+            Практикум: Конструирование интерактивной игры по традициям народов России с чат-ботом
+          </h1>
+        </div>
+      </div>
+
+      <!-- Игровые индикаторы: Трекер слова ВКЛАД + Шкала доверия -->
+      <div class="flex items-center gap-3 sm:gap-5 bg-black/40 px-3.5 py-1.5 rounded-2xl border border-white/10">
+        
+        <!-- Слоты шифра (В К Л А Д) -->
+        <div>
+          <span class="text-[9px] uppercase tracking-wider text-slate-400 font-semibold block mb-0.5">Ключи шифра:</span>
+          <div class="flex gap-1.5 font-mono text-xs sm:text-sm font-black">
+            <span id="slot-1" class="w-6 h-7 rounded bg-slate-900/90 border border-slate-700 text-slate-500 flex items-center justify-center transition-all duration-300">_</span>
+            <span id="slot-2" class="w-6 h-7 rounded bg-slate-900/90 border border-slate-700 text-slate-500 flex items-center justify-center transition-all duration-300">_</span>
+            <span id="slot-3" class="w-6 h-7 rounded bg-slate-900/90 border border-slate-700 text-slate-500 flex items-center justify-center transition-all duration-300">_</span>
+            <span id="slot-4" class="w-6 h-7 rounded bg-slate-900/90 border border-slate-700 text-slate-500 flex items-center justify-center transition-all duration-300">_</span>
+            <span id="slot-5" class="w-6 h-7 rounded bg-slate-900/90 border border-slate-700 text-slate-500 flex items-center justify-center transition-all duration-300">_</span>
+          </div>
+        </div>
+
+        <!-- Шкала этно-доверия (HP) -->
+        <div class="border-l border-white/10 pl-3">
+          <span class="text-[9px] uppercase tracking-wider text-slate-400 font-semibold block mb-0.5">Доверие:</span>
+          <div class="flex items-center gap-2">
+            <div class="w-20 sm:w-28 bg-slate-950 h-2.5 rounded-full overflow-hidden border border-white/10">
+              <div id="hp-bar" class="h-full bg-emerald-500 w-full transition-all duration-500"></div>
+            </div>
+            <span id="hp-label" class="text-xs font-mono font-bold text-emerald-400">100%</span>
+          </div>
+        </div>
+
+        <!-- Кнопка контактов автора -->
+        <button onclick="toggleAuthorModal(true)" class="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition" title="Автор практикума">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+        </button>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- ОСНОВНАЯ ЗОНА СИМУЛЯЦИИ КВЕСТА -->
+  <main class="max-w-4xl w-full mx-auto p-4 sm:p-6 flex-1 flex flex-col justify-center relative z-10">
+
+    <!-- КАРТОЧКА КВЕСТА -->
+    <div id="quest-card" class="glass-card rounded-3xl p-5 sm:p-7 shadow-2xl relative overflow-hidden pulse-glow">
+      
+      <!-- Медиа-блок: Видео VID1.mp4 или Картинка Артефакта Станции (IMG1..IMG5) -->
+      <div class="mb-5 rounded-2xl overflow-hidden border border-white/15 bg-black/60 relative aspect-video max-h-56 sm:max-h-64 w-full flex items-center justify-center">
+        
+        <!-- Вводное видео VID1.mp4 (показывается на старте) -->
+        <video id="stage-video" class="w-full h-full object-cover" controls playsinline poster="IMG.jpeg">
+          <source src="VID1.mp4" type="video/mp4">
+          <!-- Заглушка, если файл VID1.mp4 ещё не загружен в репозиторий -->
+        </video>
+
+        <!-- Изображение артефакта станции (IMG1.jpeg ... IMG5.jpeg) -->
+        <img id="stage-img" src="IMG.jpeg" alt="Артефакт станции" class="w-full h-full object-cover hidden transition-all duration-700">
+
+        <!-- Бейдж текущей локации на медиа -->
+        <div class="absolute top-3 left-3 px-3 py-1 rounded-full bg-rf-navy/85 backdrop-blur-md border border-white/20 text-[11px] font-bold text-sky-300 flex items-center gap-1.5 shadow-lg">
+          <span class="w-2 h-2 rounded-full bg-sky-400 animate-ping"></span>
+          <span id="station-badge">Станция 1 из 5: Санкт-Петербург</span>
+        </div>
+      </div>
+
+      <!-- Текстовое описание испытания -->
+      <div class="mb-5">
+        <h2 id="scenario-title" class="text-base sm:text-xl font-extrabold text-white mb-2 leading-tight flex items-center gap-2">
+          <span>Невский проспект — мост культур и конфессий</span>
+        </h2>
+        <p id="scenario-desc" class="text-slate-200 text-xs sm:text-sm leading-relaxed">
+          Санкт-Петербург объединяет более 130 национальностей. На Невском проспекте мирно соседствуют храмы разных конфессий. Ваша экспедиция начинает путь отсюда: бросьте экспедиционный кубик, чтобы определить условия диалога и получить доступ к первой развилке!
+        </p>
+      </div>
+
+      <!-- ИНТЕРАКТИВНЫЙ БЛОК: 3D КУБИК D6 + WEB AUDIO ЗВУК + ВИБРАЦИЯ -->
+      <div id="dice-container" onclick="executeRoll()" class="mb-5 p-3.5 sm:p-4 rounded-2xl bg-black/40 border border-white/10 hover:border-sky-400/50 transition-all flex flex-wrap items-center justify-between gap-4 cursor-pointer select-none group">
+        <div class="flex items-center gap-4 pointer-events-none">
+          <!-- 3D Куб -->
+          <div class="dice-scene cursor-pointer">
+            <div id="dice-cube" class="cube">
+              <div class="cube-face face-1"><div class="dot" style="grid-area: 2/2;"></div></div>
+              <div class="cube-face face-2"><div class="dot" style="grid-area: 1/1;"></div><div class="dot" style="grid-area: 3/3;"></div></div>
+              <div class="cube-face face-3"><div class="dot" style="grid-area: 1/1;"></div><div class="dot" style="grid-area: 2/2;"></div><div class="dot" style="grid-area: 3/3;"></div></div>
+              <div class="cube-face face-4"><div class="dot" style="grid-area: 1/1;"></div><div class="dot" style="grid-area: 1/3;"></div><div class="dot" style="grid-area: 3/1;"></div><div class="dot" style="grid-area: 3/3;"></div></div>
+              <div class="cube-face face-5"><div class="dot" style="grid-area: 1/1;"></div><div class="dot" style="grid-area: 1/3;"></div><div class="dot" style="grid-area: 2/2;"></div><div class="dot" style="grid-area: 3/1;"></div><div class="dot" style="grid-area: 3/3;"></div></div>
+              <div class="cube-face face-6"><div class="dot" style="grid-area: 1/1;"></div><div class="dot" style="grid-area: 2/1;"></div><div class="dot" style="grid-area: 3/1;"></div><div class="dot" style="grid-area: 1/3;"></div><div class="dot" style="grid-area: 2/3;"></div><div class="dot" style="grid-area: 3/3;"></div></div>
+            </div>
+          </div>
+
+          <div>
+            <div id="dice-roll-title" class="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5 group-hover:text-sky-300 transition">
+              <span>Экспедиционный кубик (D6)</span>
+            </div>
+            <p id="dice-roll-hint" class="text-[11px] text-slate-400 mt-0.5">
+              Нажмите сюда или на кнопку: бросок определит сложность ситуации
+            </p>
+          </div>
+        </div>
+
+        <button id="roll-btn" type="button" onclick="event.stopPropagation(); executeRoll();" class="w-full sm:w-auto px-5 py-3 rounded-xl bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-500 hover:to-red-600 active:scale-95 text-white font-bold text-xs tracking-wider uppercase transition shadow-lg shadow-red-700/40 flex items-center justify-center gap-2 cursor-pointer">
+          <span>🎲</span>
+          <span>Бросить кубик</span>
+        </button>
+      </div>
+
+      <!-- СООБЩЕНИЕ ОБРАТНОЙ СВЯЗИ (ПРИ ВЫБОРЕ ИЛИ БОНУСЕ) -->
+      <div id="feedback-alert" class="hidden mb-4 p-3.5 rounded-2xl text-xs sm:text-sm border leading-relaxed transition-all"></div>
+
+      <!-- ВАРИАНТЫ ВЫБОРА РЕШЕНИЙ -->
+      <div id="choices-list" class="space-y-2.5">
+        <!-- Генерируются динамически после броска кубика -->
+      </div>
+
+      <!-- ВТОРОЙ УРОВЕНЬ: МИКРО-КЕЙС ПЕДАГОГИЧЕСКОЙ РЕФЛЕКСИИ -->
+      <div id="reflection-block" class="hidden mt-5 pt-5 border-t border-white/10">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="px-2.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+            Уровень 2: Методическая рефлексия
+          </span>
+          <span class="text-xs text-slate-300 font-semibold">Закрепление принципа</span>
+        </div>
+        <h3 id="reflection-title" class="text-xs sm:text-sm font-bold text-white mb-1.5"></h3>
+        <p id="reflection-desc" class="text-slate-300 text-xs sm:text-sm leading-relaxed mb-4"></p>
+        <div id="reflection-choices" class="space-y-2"></div>
+      </div>
+
+    </div>
+
+    <!-- ФИНАЛЬНЫЙ ЭКРАН: ЗАГАДКА И ВВОД ШИФРА «ВКЛАД» -->
+    <div id="riddle-card" class="hidden glass-card rounded-3xl p-6 sm:p-8 shadow-2xl relative text-center">
+      <div class="w-14 h-14 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30 mx-auto flex items-center justify-center text-2xl mb-3">
+        🔐
+      </div>
+
+      <span class="px-3 py-1 rounded-full text-[11px] font-bold bg-sky-500/10 text-sky-300 border border-sky-400/20 inline-block mb-2">
+        Испытание завершено • Врата Хранителей
+      </span>
+
+      <h2 class="text-lg sm:text-2xl font-black text-white mb-3">
+        РАСШИФРУЙТЕ ТАЙНОЕ СЛОВО
+      </h2>
+
+      <p class="text-slate-200 text-xs sm:text-sm max-w-xl mx-auto mb-6 leading-relaxed">
+        Вы прошли пять ключевых узлов России от берегов Невы до Байкала и вернулись в Институт экономики и управления Герцена. Вы собрали 5 скрытых буквенных ключей. <br><br>
+        <span class="text-amber-300 font-semibold">Какое слово из пяти букв обозначает личную лепту, созидательное участие и долю каждого народа в нашем общем культурном наследии?</span>
+      </p>
+
+      <!-- Интерактивная форма ввода слова -->
+      <div class="max-w-xs mx-auto mb-4">
+        <div class="flex justify-center gap-2 mb-3">
+          <input type="text" id="cipher-input" maxlength="5" placeholder="СЛОВО" class="w-full text-center font-mono font-black text-xl uppercase tracking-[0.4em] py-3 px-4 rounded-xl bg-slate-950/90 border-2 border-sky-500/50 text-white focus:outline-none focus:border-red-500 shadow-inner">
+        </div>
+        <button onclick="checkCipherWord()" class="w-full py-3 rounded-xl bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white font-bold text-xs uppercase tracking-wider transition shadow-lg shadow-red-700/30">
+          Проверить шифр ➔
+        </button>
+      </div>
+
+      <div id="riddle-feedback" class="text-xs text-rose-400 min-h-[1.5rem] font-medium"></div>
+
+      <!-- Кнопка подсказки от бота -->
+      <div class="mt-4 pt-4 border-t border-white/10 flex justify-center">
+        <button onclick="askBotHelp()" class="text-xs text-sky-400 hover:text-sky-300 flex items-center gap-1.5 underline decoration-sky-500/50">
+          <span>💡 Спросить подсказку у AI-наставника</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ТРИУМФАЛЬНЫЙ ЭКРАН ПОБЕДЫ -->
+    <div id="victory-card" class="hidden glass-card rounded-3xl p-6 sm:p-9 shadow-2xl relative text-center">
+      <div class="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 mx-auto flex items-center justify-center text-3xl mb-3 shadow-lg">
+        🏆
+      </div>
+
+      <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 inline-block mb-2">
+        Шифр подтвержден!
+      </span>
+
+      <h2 class="text-2xl sm:text-3xl font-black text-white mb-2">
+        СЛОВО РАЗГАДАНО: «ВКЛАД»
+      </h2>
+
+      <div class="my-4 inline-flex items-center gap-2 font-mono text-2xl sm:text-3xl font-extrabold text-amber-300 bg-slate-950/90 px-6 py-2.5 rounded-2xl border border-amber-500/40 tracking-[0.3em] shadow-xl">
+        В • К • Л • А • Д
+      </div>
+
+      <p class="text-slate-200 text-xs sm:text-sm max-w-lg mx-auto mb-6 leading-relaxed">
+        Единство в многообразии доказано на практике! Каждый народ вносит свой неоценимый вклад в общую культуру, а вы успешно завершили методический квест.
+      </p>
+
+      <!-- Инструкция по получению материалов через Pro-Talk бота -->
+      <div class="p-4 sm:p-5 rounded-2xl bg-black/60 border border-white/10 text-left max-w-lg mx-auto mb-6 text-xs sm:text-sm space-y-2">
+        <div class="font-bold text-sky-300 flex items-center gap-1.5">
+          <span>🎁</span> <span>Как забрать методический артефакт и материалы:</span>
+        </div>
+        <p class="text-slate-300">
+          1. Откройте виджет <b class="text-white">AI-Хранителя Традиций</b> в правом нижнем углу.<br>
+          2. Отправьте ему пароль <b class="text-amber-400 font-mono">ВКЛАД</b>.<br>
+          3. Получите прямую ссылку на репозиторий GitHub с кодом этой игры, промпты и методические руководства ФИП!
+        </p>
+      </div>
+
+      <div class="flex flex-wrap items-center justify-center gap-3">
+        <button onclick="toggleBotWidget(true)" class="px-6 py-3 rounded-xl bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-500 text-white font-bold text-xs uppercase tracking-wider transition shadow-lg shadow-red-700/40 flex items-center gap-2">
+          <span>💬</span>
+          <span>Открыть чат-бот для подарка</span>
+        </button>
+
+        <button onclick="location.reload()" class="px-5 py-3 rounded-xl bg-white/10 hover:bg-white/15 text-slate-200 font-semibold text-xs transition">
+          Пройти экспедицию снова
+        </button>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ПОДВАЛ СО ССЫЛКАМИ НА АВТОРА И КАНАЛЫ -->
+  <footer class="border-t border-white/10 bg-rf-navy/95 py-3 px-4 relative z-30">
+    <div class="max-w-5xl mx-auto flex flex-wrap items-center justify-between gap-3 text-xs">
+      <div class="flex items-center gap-2 text-slate-300">
+        <span class="font-bold text-white">Шарапов Антон Александрович</span>
+        <span class="text-slate-500">|</span>
+        <span class="text-slate-400">РГПУ им. А. И. Герцена</span>
+      </div>
+
+      <div class="flex items-center gap-4">
+        <a href="https://t.me/sharapov_rf" target="_blank" class="text-sky-400 hover:text-sky-300 font-medium flex items-center gap-1 transition">
+          <span>✈️ Telegram</span>
+        </a>
+        <a href="https://max.ru/channel_sharapov" target="_blank" class="text-amber-400 hover:text-amber-300 font-medium flex items-center gap-1 transition">
+          <span>📢 Канал в МАКС</span>
+        </a>
+        <button onclick="toggleAuthorModal(true)" class="text-slate-300 hover:text-white underline">
+          Контакты
+        </button>
+      </div>
+    </div>
+  </footer>
+
+  <!-- МОДАЛЬНОЕ ОКНО: ВИЗИТКА И КОНТАКТЫ СПИКЕРА -->
+  <div id="author-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="glass-card max-w-md w-full rounded-3xl p-6 relative border border-white/20 shadow-2xl">
+      <button onclick="toggleAuthorModal(false)" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg w-8 h-8 rounded-full bg-white/5 flex items-center justify-center transition">✕</button>
+
+      <div class="flex items-center gap-4 mb-4">
+        <img src="https://i.oneme.ru/i?r=B0dHQN0Qr3SEKX3_pN3UAD08V7oxEBJK3ls4fezOBTvrJZS6JsGyXWeYNFzZqxmPE4XCMcQWmylEmbETbLL7XBII9sWfn84d" 
+             alt="Шарапов Антон Александрович" 
+             class="w-16 h-16 rounded-2xl object-cover border-2 border-sky-400/50 shadow-md">
+        <div>
+          <h3 class="text-base font-bold text-white leading-tight">Шарапов Антон Александрович</h3>
+          <p class="text-[11px] text-sky-300 mt-0.5">Преподаватель-исследователь, методист высшей категории, эксперт по нейросетям</p>
+        </div>
+      </div>
+
+      <div class="space-y-2 text-xs text-slate-200 mb-5">
+        <div class="p-2.5 rounded-xl bg-black/40 border border-white/5 flex items-center justify-between">
+          <span class="text-slate-400">Телефон для связи:</span>
+          <a href="tel:+79500320308" class="font-bold text-white hover:text-sky-300">+7 (950) 032-03-08</a>
+        </div>
+        <div class="p-2.5 rounded-xl bg-black/40 border border-white/5 flex items-center justify-between">
+          <span class="text-slate-400">Telegram:</span>
+          <a href="https://t.me/sharapov_rf" target="_blank" class="font-bold text-sky-400 hover:underline">@sharapov_rf</a>
+        </div>
+        <div class="p-2.5 rounded-xl bg-black/40 border border-white/5 flex items-center justify-between">
+          <span class="text-slate-400">Официальный канал:</span>
+          <a href="https://max.ru/channel_sharapov" target="_blank" class="font-bold text-amber-400 hover:underline">max.ru/channel_sharapov</a>
+        </div>
+      </div>
+
+      <div class="text-[11px] text-slate-400 leading-relaxed italic text-center">
+        «Многообразие форматов — единство решений: от интерактивных симуляторов до авторских AI-ассистентов в дополнительном образовании».
+      </div>
+    </div>
+  </div>
+
+  <!-- ВИДЖЕТ ЧАТ-БОТА PRO-TALK (FLOATING DRAWER) -->
+  <div class="fixed bottom-4 right-4 z-50 flex flex-col items-end">
+    
+    <!-- Контейнер виджета с iframe -->
+    <div id="bot-drawer" class="hidden w-[94vw] sm:w-[420px] h-[580px] max-h-[82vh] rounded-3xl overflow-hidden shadow-2xl border-2 border-sky-400/40 bg-rf-navy mb-2 flex flex-col transition-all duration-300">
+      
+      <!-- Шапка чата бота -->
+      <div class="bg-slate-950 px-4 py-3 border-b border-white/10 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></div>
+          <div>
+            <div class="text-xs sm:text-sm font-bold text-white leading-none">AI-Хранитель Традиций</div>
+            <div class="text-[10px] text-slate-400 mt-0.5">Диалоговый наставник практикума Слёта ПДО</div>
+          </div>
+        </div>
+        <button onclick="toggleBotWidget(false)" class="text-slate-400 hover:text-white text-base px-2 py-1 rounded-lg hover:bg-white/10 transition">✕</button>
+      </div>
+
+      <!-- Live iframe Pro-Talk (чистый проверенный URL диалога без лишних плашек) -->
+      <div class="flex-1 w-full h-full bg-white relative">
+        <iframe 
+          id="protalk-frame"
+          allow="microphone;autoplay" 
+          style="width:100%!important;height:100%!important;border:none;" 
+          src="https://functions.pro-talk.ru/api/v1.0/chatgpt_widget_dialog_api?record_id=rec9gN0mExBzacaOO&promt_id=75402&lang=ru&fullscreen=0&voice=1&prod=1&file=1">
+        </iframe>
+      </div>
+    </div>
+
+    <!-- Кнопка вызова бота в углу -->
+    <button onclick="toggleBotWidget()" class="flex items-center gap-2.5 px-4 py-3 rounded-full bg-gradient-to-r from-red-600 via-rose-600 to-sky-600 hover:from-red-500 hover:to-sky-500 text-white font-bold text-xs sm:text-sm shadow-2xl shadow-red-900/60 transition active:scale-95 border border-white/20">
+      <span class="text-base sm:text-lg">🤖</span>
+      <span>Спросить AI-наставника / Ввести шифр</span>
+      <span class="w-2 h-2 rounded-full bg-emerald-300 animate-ping"></span>
+    </button>
+  </div>
+
+  <!-- ДВИЖОК ИГРЫ: WEB AUDIO СИНТЕЗАТОР, 3D РОЛЛИНГ, СТЕЙТ-МАШИНА -->
+  <script>
+    // 1. Web Audio API: Синтез звука стука игральных костей при первом же взаимодействии
+    let audioCtx = null;
+    function playDiceAudio() {
+      try {
+        if (!audioCtx) {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (AudioContextClass) audioCtx = new AudioContextClass();
+        }
+        if (audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        if (!audioCtx) return;
+
+        const now = audioCtx.currentTime;
+        const impacts = [0, 0.07, 0.16, 0.28];
+        impacts.forEach(offset => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(160 + Math.random() * 90, now + offset);
+          osc.frequency.exponentialRampToValueAtTime(35, now + offset + 0.05);
+
+          gain.gain.setValueAtTime(0.45, now + offset);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.05);
+
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+
+          osc.start(now + offset);
+          osc.stop(now + offset + 0.06);
+        });
+      } catch (err) {
+        console.warn('Audio not initialized yet:', err);
+      }
+    }
+
+    // Тактильная виброотдача для мобильных устройств
+    function triggerHaptic() {
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        try { navigator.vibrate(40); } catch (e) {}
+      }
+    }
+
+    // Состояние игры
+    let currentStationIndex = 1;
+    let hp = 100;
+    let isRolling = false;
+    let collectedLetters = [false, false, false, false, false];
+
+    // База станций экспедиции
+    const expeditionStations = {
+      1: {
+        badge: "Станция 1 из 5: Санкт-Петербург",
+        letter: "В",
+        index: 0,
+        img: "IMG1.jpeg",
+        title: "Точка сборки: Невский проспект — мост культур и согласия",
+        desc: "Санкт-Петербург объединяет более 130 национальностей. На Невском проспекте мирно соседствуют храмы разных традиций: Казанский собор, Петрикирхе, Базилика Св. Екатерины и Армянская церковь. Бросьте экспедиционный кубик!",
+        scenarios: {
+          hard: {
+            title: "Осечка (1-2): Разрешение межкультурного спора",
+            desc: "В школьном сообществе возник спор: часть педагогов предлагает исключить национальные обычаи из внеурочной деятельности ради формального спокойствия. Ваше управленческое решение?",
+            choices: [
+              {
+                text: "А. Запустить сетевой проект «Лица Петербурга: традиции 130 народов» с аудиогидами от детей разных студий.",
+                damage: 0,
+                feedback: "✨ Мудрый выбор! Город раскрылся как поликультурное пространство диалога и согласия.",
+                success: true
+              },
+              {
+                text: "Б. Согласиться и закрыть тему традиций, заменив её сухими тестами по общим фактам.",
+                damage: 30,
+                feedback: "❌ Ошибка ухода: замалчивание традиций разрушает взаимопонимание (-30% доверия).",
+                success: false
+              }
+            ]
+          },
+          normal: {
+            title: "Стандарт (3-4): Архитектурный код Невского",
+            desc: "Школьники изучают храмы разных конфессий на главной магистрали города. Как закрепить понимание единства?",
+            choices: [
+              {
+                text: "А. Предложить командам создать интерактивный веб-квест сопоставления общих ценностей милосердия и добрососедства.",
+                damage: 0,
+                feedback: "✨ Блестяще! Интерактивный формат помог ребятам увидеть единство этических ориентиров.",
+                success: true
+              },
+              {
+                text: "Б. Заставить выучить наизусть даты закладки фундаментов без погружения в культурный контекст.",
+                damage: 20,
+                feedback: "⚠️ Формализм: зубрежка дат не дала прочувствовать ценность диалога (-20% доверия).",
+                success: false
+              }
+            ]
+          },
+          bonus: {
+            title: "Культурный бонус (5-6): Город согласия",
+            desc: "Удача экспедиции! Вы нашли архивные свидетельства совместного труда мастеров десятков губерний при строительстве Петербурга. Получен бонус +15% доверия!",
+            choices: [
+              {
+                text: "А. Включить найденные этно-архивы в общегородскую базу практик ДОД.",
+                damage: 0,
+                feedback: "✨ Триумф! Доверие укреплено, открывается методическая рефлексия первого этапа.",
+                success: true
+              }
+            ]
+          }
+        },
+        reflection: {
+          title: "Педагогическая рефлексия: Принцип поликультурности",
+          desc: "В класс пришел ребенок из семьи с другими этнокультурными традициями. Какой шаг педагога наиболее точно отразит принцип «Единство в многообразии»?",
+          choices: [
+            {
+              text: "1. Попросить ученика и его семью подготовить интерактивную станцию народных сказок или ремесел для всего объединения.",
+              feedback: "Идеально! Ребенок почувствовал признание своей культуры всем коллективом.",
+              correct: true
+            },
+            {
+              text: "2. Не акцентировать внимание, требовать немедленного растворения в общей массе без проявления индивидуальности.",
+              feedback: "Неверно: это стирает уникальность и вызывает психологическое отчуждение.",
+              correct: false
+            }
+          ]
+        }
+      },
+      2: {
+        badge: "Станция 2 из 5: Поволжье (Казань)",
+        letter: "К",
+        index: 1,
+        img: "IMG2.jpeg",
+        title: "Сабантуй: Диалог традиционных ремёсел и IT",
+        desc: "Праздник Сабантуй. Мастер народной кожаной мозаики и юный наставник IT-студии спорят о будущем традиций. Бросьте кубик!",
+        scenarios: {
+          hard: {
+            title: "Осечка (1-2): Острый конфликт поколений",
+            desc: "Мастер категорически отказывается от цифры, считая экраны угрозой народному духу. Ваши действия?",
+            choices: [
+              {
+                text: "А. Предложить мастеру стать главным экспертом проекта: его рукотворные эскизы станут базой цифрового симулятора вышивки.",
+                damage: 0,
+                feedback: "✨ Истинное партнерство! Мастер горд авторством, а молодежь осваивает аутентичный казанский шов.",
+                success: true
+              },
+              {
+                text: "Б. Приказать мастеру уступить дорогу прогрессу или покинуть проект.",
+                damage: 35,
+                feedback: "❌ Разрыв преемственности: традиционная школа ремесел закрыта (-35% доверия).",
+                success: false
+              }
+            ]
+          },
+          normal: {
+            title: "Стандарт (3-4): Синергия на Сабантуе",
+            desc: "Как объединить традиционные состязания Сабантуя и современные цифровые медиа-форматы?",
+            choices: [
+              {
+                text: "А. Организовать интерактивный медиа-марафон с викториной по обычаям Сабантуя через смартфоны участников.",
+                damage: 0,
+                feedback: "✨ Праздник объединил сотни семей и зрителей онлайн!",
+                success: true
+              },
+              {
+                text: "Б. Запретить смартфоны на ярмарке, чтобы не портить атмосферу прошлых веков.",
+                damage: 25,
+                feedback: "⚠️ Ограничение: молодежь почувствовала искусственный барьер (-25% доверия).",
+                success: false
+              }
+            ]
+          },
+          bonus: {
+            title: "Культурный бонус (5-6): Золотой узор согласия",
+            desc: "Удачный бросок! Мастер лично дарит экспедиции расшитую бархатную тюбетейку. Бонус +15% доверия!",
+            choices: [
+              {
+                text: "А. Занести реликвию в цифровой каталог и перейти к методическому анализу ситуации.",
+                damage: 0,
+                feedback: "✨ Превосходно! Второй этап пройден успешно.",
+                success: true
+              }
+            ]
+          }
+        },
+        reflection: {
+          title: "Педагогическая рефлексия: Традиция и инновации",
+          desc: "Как удержать баланс между современными цифровыми инструментами (нейросетями, 3D) и бережным сохранением аутентичных ремесел?",
+          choices: [
+            {
+              text: "1. Цифровые инструменты выступают формой популяризации и фиксации, а содержательное ядро и эстетика задаются живым носителем традиции.",
+              feedback: "Точно в цель! Технологии усиливают наследие, а не подменяют его.",
+              correct: true
+            },
+            {
+              text: "2. Полностью заменить ручные ремесла генерацией изображений нейросетью за 5 секунд.",
+              feedback: "Ошибка: утрачивается мелкая моторика, тактильная культура и живое ремесленное мастерство.",
+              correct: false
+            }
+          ]
+        }
+      },
+      3: {
+        badge: "Станция 3 из 5: Северный Кавказ (Горы)",
+        letter: "Л",
+        index: 2,
+        img: "IMG3.jpeg",
+        title: "Обычаи куначества и Совет старейшин",
+        desc: "Экспедиция поднялась в высокогорный аул. За круглым столом старейшины обсуждают этику наставничества. Бросьте кубик!",
+        scenarios: {
+          hard: {
+            title: "Осечка (1-2): Напряженный педсовет",
+            desc: "Молодой методист перебил старейшину, ссылаясь на строгие инструкции отчетов. В зале воцарилась тишина. Как спасти положение?",
+            choices: [
+              {
+                text: "А. Встать, открыто принести извинения за нетерпение и попросить аксакала продолжить напутствие.",
+                damage: 0,
+                feedback: "✨ Закон уважения Кавказа восстановлен: совет единогласно поддержал экспедицию!",
+                success: true
+              },
+              {
+                text: "Б. Продолжить спор и доказывать свою формальную юридическую правоту громким голосом.",
+                damage: 40,
+                feedback: "❌ Нарушение адата: диалог сорван, доверие старейшин утрачено (-40% доверия).",
+                success: false
+              }
+            ]
+          },
+          normal: {
+            title: "Стандарт (3-4): Традиция куначества в ДОД",
+            desc: "Как перенести кавказский обычай куначества (побратимства, взаимного гостеприимства и защиты) в современные объединения?",
+            choices: [
+              {
+                text: "А. Запустить сетевые мосты дружбы: детские коллективы из разных регионов берут взаимное шефство и создают совместные проекты.",
+                damage: 0,
+                feedback: "✨ Живой мост дружбы: зарождается искреннее побратимство объединений!",
+                success: true
+              },
+              {
+                text: "Б. Ограничиться стенгазетой в коридоре с определением слова «кунак».",
+                damage: 20,
+                feedback: "⚠️ Формальный подход не затронул сердца воспитанников (-20% доверия).",
+                success: false
+              }
+            ]
+          },
+          bonus: {
+            title: "Культурный бонус (5-6): Рог гостеприимства",
+            desc: "Уважение порождает взаимность! Старейшины передают экспедиции чеканный серебряный кувшин согласия. Бонус +15% доверия!",
+            choices: [
+              {
+                text: "А. Принять дар с глубокой благодарностью и закрепить урок этикета.",
+                damage: 0,
+                feedback: "✨ Закон кавказского гостеприимства усвоен на отлично!",
+                success: true
+              }
+            ]
+          }
+        },
+        reflection: {
+          title: "Педагогическая рефлексия: Культура диалога поколений",
+          desc: "Какой воспитательный механизм является ключевым при трансляции уважения к старшим в детском коллективе?",
+          choices: [
+            {
+              text: "1. Личный пример педагога в общении с ветеранами и наставниками, создание ситуаций совместного созидания «дети — родители — старейшины».",
+              feedback: "Верно! Воспитание уважения работает только через искренний живой образец действия.",
+              correct: true
+            },
+            {
+              text: "2. Принудительное заучивание цитат классиков под угрозой снижения оценки.",
+              feedback: "Ошибка: принуждение рождает лишь внутренний протест и формализм.",
+              correct: false
+            }
+          ]
+        }
+      },
+      4: {
+        badge: "Станция 4 из 5: Сибирь и оз. Байкал",
+        letter: "А",
+        index: 3,
+        img: "IMG4.jpeg",
+        title: "Священный Байкал: Обряд уважения к природе",
+        desc: "Мыс Бурхан, священные столбы сэргэ на Ольхоне. Место неразрывной гармонии человека и первозданной природы Сибири. Бросьте кубик!",
+        scenarios: {
+          hard: {
+            title: "Осечка (1-2): Нарушение покоя святыни",
+            desc: "Группа туристов шумит и пытается привязать пластиковые пакеты на деревянные столбы сэргэ вместо шелковых лент. Ваши действия?",
+            choices: [
+              {
+                text: "А. Спокойно подойти, объяснить сакральный смысл традиций Байкала и раздать синие ленты хадак для добрых помыслов о мире.",
+                damage: 0,
+                feedback: "✨ Мудрость наставника: порядок восстановлен через просвещение, а не конфликт.",
+                success: true
+              },
+              {
+                text: "Б. Накричать на людей и вызвать охрану.",
+                damage: 25,
+                feedback: "⚠️ Агрессия породила ответную грубость, священное место осквернено ссорой (-25% доверия).",
+                success: false
+              }
+            ]
+          },
+          normal: {
+            title: "Стандарт (3-4): Экология традиций коренных народов",
+            desc: "Бурятские и эвенкийские обычаи учат брать у тайги и озера ровно столько, сколько необходимо. Как внедрить этот принцип в туристские кружки?",
+            choices: [
+              {
+                text: "А. Ввести кодекс «Осознанного следа»: экспедиции сочетают уборку берегов с изучением народных сказок и обычаев сбережения Байкала.",
+                damage: 0,
+                feedback: "✨ Отличная практика истинного экологического и патриотического воспитания!",
+                success: true
+              },
+              {
+                text: "Б. Провести сухой субботник без малейшего культурного контекста.",
+                damage: 15,
+                feedback: "⚠️ Полезно для чистоты, но культурно-воспитательный пласт упущен (-15% доверия).",
+                success: false
+              }
+            ]
+          },
+          bonus: {
+            title: "Культурный бонус (5-6): Шелковый Хадак мира",
+            desc: "Чистые помыслы вознаграждены! Хранители традиций Байкала повязали вам священный синий хадак. Бонус +15% доверия!",
+            choices: [
+              {
+                text: "А. Почтить традиции священного озера и перейти к закреплению эко-урока.",
+                damage: 0,
+                feedback: "✨ Четвертая вершина покорена с честью!",
+                success: true
+              }
+            ]
+          }
+        },
+        reflection: {
+          title: "Педагогическая рефлексия: Экология духа",
+          desc: "В чем глубокая ценность традиционных экологических обычаев коренных народов России для современных школьников?",
+          choices: [
+            {
+              text: "1. Они формируют отношение к родной земле не как к ресурсу потребления, а как к живому общему дому, за который каждый несет ответственность.",
+              feedback: "Прекрасно сформулировано! Это фундамент экологической культуры.",
+              correct: true
+            },
+            {
+              text: "2. Никакой ценности нет: современные фильтры и заводы решают все проблемы лучше обычаев предков.",
+              feedback: "Заблуждение: без ценностного фундамента технологии бессильны перед равнодушием.",
+              correct: false
+            }
+          ]
+        }
+      },
+      5: {
+        badge: "Станция 5 из 5: РГПУ им. Герцена (Финал)",
+        letter: "Д",
+        index: 4,
+        img: "IMG5.jpeg",
+        title: "Финал: Институт экономики и управления Герцена",
+        desc: "Экспедиция вернулась в Санкт-Петербург на XII Слёт педагогов ДОД. Экспертная комиссия ждет защиты вашей педагогической практики. Бросьте кубик!",
+        scenarios: {
+          hard: {
+            title: "Осечка (1-2): Критический скепсис жюри",
+            desc: "Один из экспертов сомневается, что 45-минутный квест с чат-ботом способен объединить реальные учреждения. Как убедить коллег?",
+            choices: [
+              {
+                text: "А. Предложить экспертам прямо сейчас достать смартфоны и вживую пройти путь со своими учениками, проверив отклик бота.",
+                damage: 0,
+                feedback: "🎉 Полный триумф доказательной практики! Эксперты лично убедились в вовлечении и берут разработку себе.",
+                success: true
+              },
+              {
+                text: "Б. Зачитать по бумажке 40 страниц нормативных параграфов монотонным голосом.",
+                damage: 30,
+                feedback: "❌ Потеря внимания: сухой отчет не передал живого огня разработки (-30% доверия).",
+                success: false
+              }
+            ]
+          },
+          normal: {
+            title: "Стандарт (3-4): Масштабирование опыта ДОД",
+            desc: "Каким открытым путем передать педагогам других районов готовую технологию быстрой сборки квеста?",
+            choices: [
+              {
+                text: "А. Опубликовать открытый репозиторий на GitHub с чистым кодом index.html и выдать методичку с промптами через QR-код и бота.",
+                damage: 0,
+                feedback: "✨ Образцовый открытый трансфер педагогических инноваций!",
+                success: true
+              },
+              {
+                text: "Б. Скрыть методику и продавать шаблон коллегам за закрытыми дверями.",
+                damage: 25,
+                feedback: "⚠️ Противоречит ценностям профессионального сообщества Слёта (-25% доверия).",
+                success: false
+              }
+            ]
+          },
+          bonus: {
+            title: "Культурный бонус (5-6): Академическое признание",
+            desc: "Удачный бросок! Институт экономики и управления РГПУ им. Герцена рекомендует методику к тиражированию. Бонус +15% доверия!",
+            choices: [
+              {
+                text: "А. Зафиксировать итоговую рефлексию и перейти к раскрытию кодового замка.",
+                damage: 0,
+                feedback: "✨ Все 5 этапов пройдены! Впереди — расшифровка кодового слова!",
+                success: true
+              }
+            ]
+          }
+        },
+        reflection: {
+          title: "Педагогическая рефлексия: Миссия педагога ДОД",
+          desc: "Какова ключевая миссия педагога дополнительного образования при реализации темы «Единство в многообразии»?",
+          choices: [
+            {
+              text: "1. Быть навигатором сотворчества: создавать безопасную творческую среду, где культурное различие каждого становится общим богатством всей команды.",
+              feedback: "Браво! В этом заключается подлинная педагогическая мудрость Слёта.",
+              correct: true
+            },
+            {
+              text: "2. Сводить все занятия исключительно к заполнению электронных журналов и формальным отчетам.",
+              feedback: "Печальный тупик: бюрократия вытесняет живое воспитание Человека.",
+              correct: false
+            }
+          ]
+        }
+      }
+    };
+
+    // Бросок 3D-кубика с физикой поворота
+    function executeRoll() {
+      if (isRolling) return;
+      isRolling = true;
+      playDiceAudio();
+      triggerHaptic();
+
+      const cube = document.getElementById('dice-cube');
+      const rollBtn = document.getElementById('roll-btn');
+      rollBtn.disabled = true;
+      rollBtn.classList.add('opacity-50');
+
+      // Скрываем блок рефлексии от прошлого шага, если был
+      document.getElementById('reflection-block').classList.add('hidden');
+
+      // Честное случайное число от 1 до 6
+      const rollResult = Math.floor(Math.random() * 6) + 1;
+
+      // Базовые углы для каждой грани куба
+      const baseAngles = {
+        1: { x: 0, y: 0 },
+        2: { x: 0, y: -90 },
+        3: { x: 0, y: -180 },
+        4: { x: 0, y: 90 },
+        5: { x: -90, y: 0 },
+        6: { x: 90, y: 0 }
+      };
+
+      const extraSpins = 720;
+      const target = baseAngles[rollResult];
+      cube.style.transform = `translateZ(-34px) rotateX(${target.x + extraSpins}deg) rotateY(${target.y + extraSpins}deg)`;
+
+      setTimeout(() => {
+        handleRollOutcome(rollResult);
+        isRolling = false;
+      }, 1250);
+    }
+
+    function handleRollOutcome(num) {
+      const station = expeditionStations[currentStationIndex];
+      let scenarioType = 'normal';
+      let note = '';
+
+      if (num <= 2) {
+        scenarioType = 'hard';
+        note = `Выпало [${num}]: Трудное испытание! Высокая цена ошибки.`;
+      } else if (num <= 4) {
+        scenarioType = 'normal';
+        note = `Выпало [${num}]: Штатный переход. Стандартная ситуация.`;
+      } else {
+        scenarioType = 'bonus';
+        hp = Math.min(100, hp + 15);
+        updateHealthUI();
+        note = `Выпало [${num}]! Культурный бонус: +15% доверия экспедиции!`;
+      }
+
+      document.getElementById('dice-roll-title').innerHTML = `<span class="text-sky-300 font-black">${note}</span>`;
+      document.getElementById('dice-roll-hint').innerText = "Изучите развилку и сделайте верный педагогический выбор";
+
+      const scenario = station.scenarios[scenarioType];
+      renderChoicesBlock(scenario, station);
+    }
+
+    function renderChoicesBlock(scenario, station) {
+      document.getElementById('scenario-title').innerText = scenario.title;
+      document.getElementById('scenario-desc').innerText = scenario.desc;
+
+      const choicesList = document.getElementById('choices-list');
+      choicesList.innerHTML = '';
+
+      scenario.choices.forEach(ch => {
+        const btn = document.createElement('button');
+        btn.className = "w-full text-left p-3.5 sm:p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-sky-400/50 text-slate-100 transition active:scale-[0.99] text-xs sm:text-sm font-medium shadow-md";
+        btn.innerHTML = `<span class="text-sky-400 font-bold mr-1.5">▶</span> ${ch.text}`;
+        btn.onclick = () => onChoiceSelected(ch, station);
+        choicesList.appendChild(btn);
+      });
+    }
+
+    function onChoiceSelected(choice, station) {
+      hp = Math.max(0, hp - choice.damage);
+      updateHealthUI();
+
+      const alertBox = document.getElementById('feedback-alert');
+      alertBox.classList.remove('hidden');
+      alertBox.innerHTML = choice.feedback;
+
+      if (choice.damage > 0) {
+        alertBox.className = "mb-4 p-3.5 rounded-2xl text-xs sm:text-sm border leading-relaxed bg-red-950/60 text-red-200 border-red-700/60 block";
+      } else {
+        alertBox.className = "mb-4 p-3.5 rounded-2xl text-xs sm:text-sm border leading-relaxed bg-emerald-950/60 text-emerald-200 border-emerald-700/60 block";
+      }
+
+      const choicesList = document.getElementById('choices-list');
+      choicesList.innerHTML = '';
+
+      if (hp <= 0) {
+        choicesList.innerHTML = `
+          <div class="p-4 rounded-2xl bg-red-950 border border-red-800 text-center text-xs sm:text-sm text-red-200">
+            ☠️ Доверие экспедиции полностью исчерпано. Перезапуск маршрута...
+          </div>
+          <button onclick="location.reload()" class="w-full mt-2 py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs uppercase">
+            Начать заново
+          </button>
+        `;
+        return;
+      }
+
+      // После первого выбора открываем УРОВЕНЬ 2: Методическую рефлексию
+      openReflectionLevel(station);
+    }
+
+    function openReflectionLevel(station) {
+      const refBlock = document.getElementById('reflection-block');
+      refBlock.classList.remove('hidden');
+
+      const refData = station.reflection;
+      document.getElementById('reflection-title').innerText = refData.title;
+      document.getElementById('reflection-desc').innerText = refData.desc;
+
+      const refChoices = document.getElementById('reflection-choices');
+      refChoices.innerHTML = '';
+
+      refData.choices.forEach(rc => {
+        const rBtn = document.createElement('button');
+        rBtn.className = "w-full text-left p-3 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700 hover:border-amber-400 text-slate-200 text-xs sm:text-sm transition";
+        rBtn.innerText = rc.text;
+        rBtn.onclick = () => onReflectionSelected(rc, station, rBtn);
+        refChoices.appendChild(rBtn);
+      });
+    }
+
+    function onReflectionSelected(rc, station, btnEl) {
+      const refChoices = document.getElementById('reflection-choices');
+      const allBtns = refChoices.querySelectorAll('button');
+      allBtns.forEach(b => b.disabled = true);
+
+      if (rc.correct) {
+        btnEl.classList.add('bg-emerald-950', 'border-emerald-500', 'text-emerald-200');
+        
+        // Вручаем букву в код
+        collectedLetters[station.index] = true;
+        const slot = document.getElementById(`slot-${station.index + 1}`);
+        slot.innerText = station.letter;
+        slot.className = "w-6 h-7 rounded bg-sky-500/20 border border-sky-400 text-sky-300 font-black flex items-center justify-center shadow-lg shadow-sky-500/20";
+
+        // Показываем кнопку перехода
+        const nextBtn = document.createElement('button');
+        nextBtn.className = "w-full mt-3 py-3.5 rounded-xl bg-gradient-to-r from-sky-600 to-blue-700 hover:from-sky-500 text-white font-bold text-xs uppercase tracking-wider transition shadow-lg shadow-sky-900/40";
+        
+        if (currentStationIndex < 5) {
+          nextBtn.innerText = `Ключ «${station.letter}» получен! Следовать дальше по маршруту ➔`;
+          nextBtn.onclick = () => advanceToNextStation();
+        } else {
+          nextBtn.innerText = `Все 5 ключей найдены! Перейти к расшифровке тайного слова ➔`;
+          nextBtn.onclick = () => showRiddleScreen();
+        }
+        refChoices.appendChild(nextBtn);
+
+      } else {
+        btnEl.classList.add('bg-red-950', 'border-red-600', 'text-red-300');
+        hp = Math.max(0, hp - 15);
+        updateHealthUI();
+        triggerHaptic();
+
+        const warnMsg = document.createElement('div');
+        warnMsg.className = "p-2.5 rounded-lg bg-red-950/80 border border-red-800 text-red-200 text-xs mt-2";
+        warnMsg.innerText = "⚠️ " + rc.feedback + " (-15% доверия). Выберите правильный методический шаг:";
+        refChoices.appendChild(warnMsg);
+
+        // Разблокируем кнопки для повторной попытки
+        setTimeout(() => {
+          allBtns.forEach(b => b.disabled = false);
+        }, 1000);
+      }
+    }
+
+    function advanceToNextStation() {
+      currentStationIndex++;
+      const st = expeditionStations[currentStationIndex];
+
+      // Скрываем видео, включаем картинку артефакта станции
+      const videoEl = document.getElementById('stage-video');
+      const imgEl = document.getElementById('stage-img');
+      videoEl.classList.add('hidden');
+      imgEl.classList.remove('hidden');
+      imgEl.src = st.img;
+      imgEl.onerror = () => { imgEl.src = 'IMG.jpeg'; }; // Резервный фолбэк
+
+      document.getElementById('station-badge').innerText = st.badge;
+      document.getElementById('scenario-title').innerText = st.title;
+      document.getElementById('scenario-desc').innerText = st.desc;
+      document.getElementById('feedback-alert').classList.add('hidden');
+      document.getElementById('choices-list').innerHTML = '';
+      document.getElementById('reflection-block').classList.add('hidden');
+      
+      document.getElementById('dice-roll-title').innerText = "Экспедиционный кубик (D6)";
+      document.getElementById('dice-roll-hint').innerText = "Нажмите кнопку: бросок определит сложность ситуации";
+      
+      const rollBtn = document.getElementById('roll-btn');
+      rollBtn.disabled = false;
+      rollBtn.classList.remove('opacity-50');
+    }
+
+    function updateHealthUI() {
+      const bar = document.getElementById('hp-bar');
+      const label = document.getElementById('hp-label');
+      bar.style.width = hp + '%';
+      label.innerText = hp + '%';
+
+      if (hp > 60) {
+        bar.className = 'h-full bg-emerald-500 transition-all duration-500';
+        label.className = 'text-xs font-mono font-bold text-emerald-400';
+      } else if (hp > 30) {
+        bar.className = 'h-full bg-amber-500 transition-all duration-500';
+        label.className = 'text-xs font-mono font-bold text-amber-400';
+      } else {
+        bar.className = 'h-full bg-red-600 transition-all duration-500';
+        label.className = 'text-xs font-mono font-bold text-red-400';
+      }
+    }
+
+    // 3. Финал: экран кодового замка и проверка слова «ВКЛАД»
+    function showRiddleScreen() {
+      document.getElementById('quest-card').classList.add('hidden');
+      document.getElementById('riddle-card').classList.remove('hidden');
+      document.getElementById('cipher-input').focus();
+    }
+
+    function checkCipherWord() {
+      const input = document.getElementById('cipher-input');
+      const feedback = document.getElementById('riddle-feedback');
+      const val = input.value.trim().toUpperCase();
+
+      if (val === 'ВКЛАД') {
+        feedback.innerText = '';
+        triggerTricolorConfetti();
+        document.getElementById('riddle-card').classList.add('hidden');
+        document.getElementById('victory-card').classList.remove('hidden');
+      } else {
+        triggerHaptic();
+        feedback.innerText = '❌ Неверный шифр. Подсказка: подумайте о личной доле и вкладе каждого народа.';
+        input.classList.add('border-red-500');
+        setTimeout(() => input.classList.remove('border-red-500'), 1500);
+      }
+    }
+
+    // Салют-конфетти в цветах флага России (Белый, Синий, Красный)
+    function triggerTricolorConfetti() {
+      if (typeof confetti === 'function') {
+        const count = 200;
+        const defaults = { origin: { y: 0.7 } };
+        function fire(particleRatio, opts) {
+          confetti(Object.assign({}, defaults, opts, {
+            particleCount: Math.floor(count * particleRatio)
+          }));
+        }
+        // Белый, Лазурно-синий, Ярко-красный
+        const rfColors = ['#FFFFFF', '#1D4ED8', '#DC2626'];
+        fire(0.25, { spread: 26, startVelocity: 55, colors: rfColors });
+        fire(0.2, { spread: 60, colors: rfColors });
+        fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8, colors: rfColors });
+        fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2, colors: rfColors });
+        fire(0.1, { spread: 120, startVelocity: 45, colors: rfColors });
+      }
+    }
+
+    // 4. Управление модальными окнами и ботом Pro-Talk
+    function toggleAuthorModal(show) {
+      const modal = document.getElementById('author-modal');
+      if (show) modal.classList.remove('hidden');
+      else modal.classList.add('hidden');
+    }
+
+    function toggleBotWidget(forceOpen) {
+      const drawer = document.getElementById('bot-drawer');
+      if (forceOpen === true) {
+        drawer.classList.remove('hidden');
+      } else if (forceOpen === false) {
+        drawer.classList.add('hidden');
+      } else {
+        drawer.classList.toggle('hidden');
+      }
+    }
+
+    function askBotHelp() {
+      toggleBotWidget(true);
+      sendQuickBotText("Подскажи, какое слово из пяти букв означает долю каждого народа в общее наследие?");
+    }
+
+    function sendQuickBotText(text) {
+      // Пытаемся передать сообщение в iframe виджета Pro-Talk через postMessage
+      const iframe = document.getElementById('protalk-frame');
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage({ type: 'send_message', message: text }, '*');
+      }
+    }
+
+    // Поддержка нажатия Enter в поле ввода шифра
+    document.getElementById('cipher-input').addEventListener('keypress', function (e) {
+      if (e.key === 'Enter') {
+        checkCipherWord();
+      }
+    });
+  </script>
+</body>
+</html>
